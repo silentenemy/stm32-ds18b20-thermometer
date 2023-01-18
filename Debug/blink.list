@@ -39,9 +39,9 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  17 .debug_line   00012797  00000000  00000000  0004e0b3  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    0008f6b9  00000000  00000000  0006084a  2**0
+ 18 .debug_str    0008f6ba  00000000  00000000  0006084a  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000050  00000000  00000000  000eff03  2**0
+ 19 .comment      00000050  00000000  00000000  000eff04  2**0
                   CONTENTS, READONLY
  20 .debug_frame  00005930  00000000  00000000  000eff54  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
@@ -3133,7 +3133,7 @@ ONEWIRE_Status OneWire_Reset(UART_HandleTypeDef *huart)
  8001a50:	2300      	movs	r3, #0
  8001a52:	737b      	strb	r3, [r7, #13]
 	OneWire_SetBaudrate(huart, ONEWIRE_RESET_BAUDRATE);
- 8001a54:	f44f 5196 	mov.w	r1, #4800	; 0x12c0
+ 8001a54:	f44f 5116 	mov.w	r1, #9600	; 0x2580
  8001a58:	6878      	ldr	r0, [r7, #4]
  8001a5a:	f7ff ff1b 	bl	8001894 <OneWire_SetBaudrate>
 	HAL_UART_Transmit(huart, &txByte, 1, ONEWIRE_UART_TIMEOUT);
@@ -3149,7 +3149,7 @@ ONEWIRE_Status OneWire_Reset(UART_HandleTypeDef *huart)
  8001a74:	6878      	ldr	r0, [r7, #4]
  8001a76:	f002 fcf6 	bl	8004466 <HAL_UART_Receive>
 	OneWire_SetBaudrate(huart, ONEWIRE_BAUDRATE);
- 8001a7a:	f44f 4161 	mov.w	r1, #57600	; 0xe100
+ 8001a7a:	f44f 31e1 	mov.w	r1, #115200	; 0x1c200
  8001a7e:	6878      	ldr	r0, [r7, #4]
  8001a80:	f7ff ff08 	bl	8001894 <OneWire_SetBaudrate>
 	if (rxByte == txByte)

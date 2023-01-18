@@ -11,11 +11,8 @@
 
 /* Declarations and definitions ----------------------------------------------*/
 
-//#define ONEWIRE_BAUDRATE                                              115200
-//#define ONEWIRE_RESET_BAUDRATE                                        9600
-
-#define ONEWIRE_BAUDRATE                                              57600
-#define ONEWIRE_RESET_BAUDRATE                                        4800
+#define ONEWIRE_BAUDRATE                                              115200
+#define ONEWIRE_RESET_BAUDRATE                                        9600
 
 #define ONEWIRE_RESET_BYTE                                            0xF0
 #define ONEWIRE_UART_TIMEOUT                                          10
