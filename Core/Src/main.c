@@ -41,10 +41,13 @@
 /* Private variables ---------------------------------------------------------*/
  I2C_HandleTypeDef hi2c1;
 
+TIM_HandleTypeDef htim2;
+
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-
+DS18B20 sensor;
+DS18B20_Status state;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -52,13 +55,65 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+		HAL_ResumeTick();
+        if(htim->Instance == TIM2) //check if the interrupt comes from TIM2
+        {
+        	ssd1306_SetCursor(0, 20);
 
+        	state = DS18B20_InitializationCommand(&sensor);
+        	state = DS18B20_ReadRom(&sensor);
+        	state = DS18B20_ConvertT(&sensor, DS18B20_DATA);
+
+        	if (state == DS18B20_ERROR) {
+        		ssd1306_WriteString("ConvertT error", Font_7x10, White);
+        		ssd1306_UpdateScreen();
+        		return;
+        	}
+
+        	DS18B20_InitializationCommand(&sensor);
+        	state = DS18B20_ReadRom(&sensor);
+        	ssd1306_SetCursor(0, 10);
+        	if (state == DS18B20_OK) {
+        		ssd1306_WriteString("ReadRom() ok", Font_7x10, White);
+        	}
+        	else {
+        		ssd1306_WriteString("ReadRom() failed", Font_7x10, White);
+        	}
+
+        	state = DS18B20_ReadScratchpad(&sensor);
+        	if (state == DS18B20_ERROR) {
+        		ssd1306_WriteString("ReadS error", Font_7x10, White);
+        		ssd1306_UpdateScreen();
+        		return;
+        	}
+
+        	else {
+        		char config[3];
+        		sprintf(config, "%Xh", sensor.configRegister);
+        		ssd1306_SetCursor(106, 0);
+        		ssd1306_WriteString(config, Font_7x10, White);
+        		ssd1306_UpdateScreen();
+
+        		char buf[15];
+        		sprintf(buf, "%2.1f          ", sensor.temperature);
+        		ssd1306_SetCursor(0, 20);
+        		ssd1306_WriteString(buf, Font_7x10, White);
+        		ssd1306_UpdateScreen();
+        		return;
+        	}
+        }
+        //HAL_SuspendTick();
+        //HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+}
 /* USER CODE END 0 */
 
 /**
@@ -91,9 +146,8 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_USART1_UART_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  DS18B20 sensor;
-  DS18B20_Status state;
   DS18B20_Init(&sensor, &huart1);
 
   ssd1306_Init();
@@ -111,19 +165,22 @@ int main(void)
   ssd1306_SetCursor(0, 10);
   if (state == DS18B20_OK) {
   	  ssd1306_WriteString("ReadRom() ok", Font_7x10, White);
+  	  char serial[12];
+  	  sprintf(serial, "%X%X%X%X%X%Xh", (uint8_t)*sensor.serialNumber,
+  			  	  	  	  	  (uint8_t)*(sensor.serialNumber+1),
+  							  (uint8_t)*(sensor.serialNumber+2),
+  							  (uint8_t)*(sensor.serialNumber+3),
+  							  (uint8_t)*(sensor.serialNumber+4),
+  							  (uint8_t)*(sensor.serialNumber+5));
+  	  ssd1306_SetCursor(0, 0);
+  	  ssd1306_WriteString(serial, Font_7x10, White);
   }
   else {
   	  ssd1306_WriteString("ReadRom() failed", Font_7x10, White);
   }
-  char serial[12];
-  sprintf(serial, "%X%X%X%X%X%Xh", (uint8_t)*sensor.serialNumber,
-		  	  	  	  	  (uint8_t)*(sensor.serialNumber+1),
-						  (uint8_t)*(sensor.serialNumber+2),
-						  (uint8_t)*(sensor.serialNumber+3),
-						  (uint8_t)*(sensor.serialNumber+4),
-						  (uint8_t)*(sensor.serialNumber+5));
-  ssd1306_SetCursor(0, 0);
-  ssd1306_WriteString(serial, Font_7x10, White);
+
+  ssd1306_UpdateScreen();
+  HAL_TIM_Base_Start_IT(&htim2);
 
   /* USER CODE END 2 */
 
@@ -134,51 +191,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  ssd1306_SetCursor(0, 20);
-
-	  state = DS18B20_InitializationCommand(&sensor);
-	  state = DS18B20_ReadRom(&sensor);
-	  state = DS18B20_ConvertT(&sensor, DS18B20_DATA);
-
-	  if (state == DS18B20_ERROR) {
-		  ssd1306_WriteString("ConvertT error", Font_7x10, White);
-		  ssd1306_UpdateScreen();
-		  HAL_Delay(1000);
-		  continue;
-	  }
-
-	  DS18B20_InitializationCommand(&sensor);
-	  state = DS18B20_ReadRom(&sensor);
-	  ssd1306_SetCursor(0, 10);
-	  if (state == DS18B20_OK) {
-	  	  ssd1306_WriteString("ReadRom() ok", Font_7x10, White);
-	  }
-	  else {
-	  	  ssd1306_WriteString("ReadRom() failed", Font_7x10, White);
-	  }
-
-	  state = DS18B20_ReadScratchpad(&sensor);
-	  if (state == DS18B20_ERROR) {
-  		  ssd1306_WriteString("ReadS error", Font_7x10, White);
-  		  ssd1306_UpdateScreen();
-  		  HAL_Delay(1000);
-  		  continue;
-	  }
-
-	  else {
-		  char config[3];
-		  sprintf(config, "%Xh", sensor.configRegister);
-		  ssd1306_SetCursor(106, 0);
-		  ssd1306_WriteString(config, Font_7x10, White);
-		  ssd1306_UpdateScreen();
-
-		  char buf[8];
-		  sprintf(buf, "%2.1f", sensor.temperature);
-		  ssd1306_SetCursor(0, 20);
-		  ssd1306_WriteString(buf, Font_7x10, White);
-		  ssd1306_UpdateScreen();
-		  HAL_Delay(1000);
-	  }
+	  HAL_SuspendTick();
+	  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
   }
   /* USER CODE END 3 */
 }
@@ -257,6 +271,51 @@ static void MX_I2C1_Init(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 1439;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 49999;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -272,7 +331,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 57600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
